@@ -6,14 +6,17 @@ function makeState() {
     w: 900,
     h: 550,
     netH: 8,
-    ball: { pos: { x: 450, y: 200 }, vel: { x: 0, y: 0 }, r: 8, speed: 420 },
-    p1: { pos: { x: 40, y: 100 }, w: 14, h: 90, maxSpeed: 300, human: true },
-    p2: { pos: { x: 846, y: 100 }, w: 14, h: 90, maxSpeed: 300, human: false },
+    ball: { pos: { x: 450, y: 200 }, vel: { x: 0, y: 0 }, r: 8, speed: 420, bounces: 0, lastBounceTime: 0 },
+    p1: { pos: { x: 40, y: 100 }, w: 14, h: 90, maxSpeed: 300, human: true, inNVZ: false },
+    p2: { pos: { x: 846, y: 100 }, w: 14, h: 90, maxSpeed: 300, human: false, inNVZ: false },
     score: { p1: 10, p2: 10 },
-    serving: "p1" as const,
-    rally: 0,
+    serve: { server: "p1" as const, serviceCourt: "right" as const, isFirstServe: true, serveAttempts: 0 },
+    rally: { ballBounced: { p1Side: false, p2Side: false }, canVolley: { p1: false, p2: false }, rallyNumber: 0 },
     paused: false,
     aiLevel: 3,
+    gameMode: "singles" as const,
+    scoringMode: "traditional" as const,
+    lastFault: null,
   };
 }
 
@@ -33,12 +36,13 @@ describe("scoring", () => {
     expect(hasWinner(s)).toBe(true);
   });
 
-  it("awards point and rotates serve every 2 points", () => {
+  it("awards point and rotates serve in singles based on score parity", () => {
     const s = makeState();
     s.score = { p1: 2, p2: 1 };
-    s.serving = "p1";
-    awardPoint(s, "p2");
-    expect(s.score.p2).toBe(2);
-    expect(s.serving).toBe("p2");
+    s.serve.server = "p1";
+    s.serve.serviceCourt = "right";
+    awardPoint(s, "p1");
+    expect(s.score.p1).toBe(3);
+    expect(s.serve.serviceCourt).toBe("left");
   });
 });

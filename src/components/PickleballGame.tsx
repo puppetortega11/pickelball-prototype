@@ -3,7 +3,7 @@
 import React, { useRef, useEffect, useCallback } from "react";
 import { updateAI, adaptDifficulty } from "@/lib/ai";
 import { COURT } from "@/lib/config";
-import { stepBall, collideWithPaddle, paddleHitResponse, resetBallForServe } from "@/lib/physics";
+import { stepBall, collideWithPaddle, paddleHitResponse, resetBallForServe, isInNVZ } from "@/lib/physics";
 import { checkPoint, awardPoint, hasWinner } from "@/lib/scoring";
 import type { State } from "@/lib/types";
 
@@ -27,6 +27,8 @@ export default function PickleballGame() {
         vel: { x: 420, y: 80 },
         r: COURT.BALL_R,
         speed: COURT.BASE_BALL_SPEED,
+        bounces: 0,
+        lastBounceTime: 0,
       },
       p1: {
         pos: { x: 40, y: (canvas.height - COURT.PADDLE_H) / 2 },
@@ -34,6 +36,7 @@ export default function PickleballGame() {
         h: COURT.PADDLE_H,
         maxSpeed: COURT.BASE_PADDLE_SPEED,
         human: true,
+        inNVZ: false,
       },
       p2: {
         pos: { x: canvas.width - 40 - COURT.PADDLE_W, y: (canvas.height - COURT.PADDLE_H) / 2 },
@@ -41,15 +44,28 @@ export default function PickleballGame() {
         h: COURT.PADDLE_H,
         maxSpeed: COURT.BASE_PADDLE_SPEED,
         human: false,
+        inNVZ: false,
       },
       score: { p1: 0, p2: 0 },
-      serving: "p1",
-      rally: 0,
+      serve: {
+        server: "p1",
+        serviceCourt: "right",
+        isFirstServe: true,
+        serveAttempts: 0,
+      },
+      rally: {
+        ballBounced: { p1Side: false, p2Side: false },
+        canVolley: { p1: false, p2: false },
+        rallyNumber: 0,
+      },
       paused: false,
       aiLevel: 3,
+      gameMode: "singles",
+      scoringMode: "traditional",
+      lastFault: null,
     };
 
-    resetBallForServe(state, state.serving);
+    resetBallForServe(state);
     return state;
   }, []);
 
@@ -60,6 +76,9 @@ export default function PickleballGame() {
     if (keysRef.current.has("s") || keysRef.current.has("ArrowDown")) vy += p.maxSpeed;
     p.pos.y += vy * dt;
     p.pos.y = Math.max(0, Math.min(state.h - p.h, p.pos.y));
+
+    state.p1.inNVZ = isInNVZ(state.p1.pos, state.p1.w);
+    state.p2.inNVZ = isInNVZ(state.p2.pos, state.p2.w);
 
     updateAI(state, dt);
     stepBall(state, dt);
@@ -75,8 +94,11 @@ export default function PickleballGame() {
       ) &&
       state.ball.vel.x < 0
     ) {
-      paddleHitResponse(state, true);
-      state.rally++;
+      const fault = paddleHitResponse(state, true);
+      if (fault) {
+        state.lastFault = fault;
+      }
+      state.rally.rallyNumber++;
     }
     if (
       collideWithPaddle(
@@ -89,8 +111,11 @@ export default function PickleballGame() {
       ) &&
       state.ball.vel.x > 0
     ) {
-      paddleHitResponse(state, false);
-      state.rally++;
+      const fault = paddleHitResponse(state, false);
+      if (fault) {
+        state.lastFault = fault;
+      }
+      state.rally.rallyNumber++;
     }
 
     const point = checkPoint(state);
@@ -116,7 +141,23 @@ export default function PickleballGame() {
 
       ctx.strokeStyle = "rgba(255,255,255,.9)";
       ctx.lineWidth = 2;
-      ctx.strokeRect(20, 20, state.w - 40, state.h - 40);
+      ctx.strokeRect(COURT.SIDELINE_X, COURT.BASELINE_Y, state.w - 2 * COURT.SIDELINE_X, state.h - 2 * COURT.BASELINE_Y);
+
+      ctx.strokeStyle = "rgba(255,255,255,0.6)";
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(COURT.SIDELINE_X, COURT.BASELINE_Y + COURT.SERVICE_LINE_Y);
+      ctx.lineTo(COURT.W - COURT.SIDELINE_X, COURT.BASELINE_Y + COURT.SERVICE_LINE_Y);
+      ctx.moveTo(COURT.SIDELINE_X, COURT.H - COURT.BASELINE_Y - COURT.SERVICE_LINE_Y);
+      ctx.lineTo(COURT.W - COURT.SIDELINE_X, COURT.H - COURT.BASELINE_Y - COURT.SERVICE_LINE_Y);
+      ctx.moveTo(COURT.CENTERLINE_X, COURT.BASELINE_Y);
+      ctx.lineTo(COURT.CENTERLINE_X, COURT.BASELINE_Y + COURT.SERVICE_LINE_Y);
+      ctx.moveTo(COURT.CENTERLINE_X, COURT.H - COURT.BASELINE_Y - COURT.SERVICE_LINE_Y);
+      ctx.lineTo(COURT.CENTERLINE_X, COURT.H - COURT.BASELINE_Y);
+      ctx.stroke();
+
+      ctx.fillStyle = "rgba(255,255,0,0.1)";
+      ctx.fillRect(COURT.SIDELINE_X, state.h / 2 - COURT.NVZ_DEPTH / 2, COURT.W - 2 * COURT.SIDELINE_X, COURT.NVZ_DEPTH);
 
       ctx.fillStyle = "rgba(255,255,255,0.9)";
       ctx.fillRect(state.w / 2 - 1, state.h / 2 - state.netH / 2, 2, state.netH);
@@ -134,6 +175,15 @@ export default function PickleballGame() {
       ctx.fillStyle = "#ffffff";
       ctx.fillText(`${state.score.p1}`, state.w * 0.25, 36);
       ctx.fillText(`${state.score.p2}`, state.w * 0.75, 36);
+      
+      ctx.font = "14px system-ui, -apple-system, Segoe UI, Roboto";
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(`Server: ${state.serve.server.toUpperCase()} (${state.serve.serviceCourt})`, state.w / 2 - 60, 50);
+      ctx.fillText(`Rally: ${state.rally.rallyNumber} | Bounces: ${state.ball.bounces}`, state.w / 2 - 60, 70);
+      if (state.lastFault) {
+        ctx.fillStyle = "#ff6b6b";
+        ctx.fillText(`Fault: ${state.lastFault.replace(/_/g, ' ')}`, state.w / 2 - 80, state.h - 20);
+      }
 
       if (hasWinner(state)) {
         const winner = state.score.p1 > state.score.p2 ? "You win!" : "AI wins!";
@@ -142,9 +192,16 @@ export default function PickleballGame() {
           state.score.p1 = 0;
           state.score.p2 = 0;
           state.aiLevel = 3;
-          state.serving = "p1";
+          state.serve.server = "p1";
+          state.serve.serviceCourt = "right";
+          state.serve.isFirstServe = true;
+          state.serve.serveAttempts = 0;
+          state.rally.ballBounced = { p1Side: false, p2Side: false };
+          state.rally.canVolley = { p1: false, p2: false };
+          state.rally.rallyNumber = 0;
+          state.lastFault = null;
           state.paused = false;
-          resetBallForServe(state, state.serving);
+          resetBallForServe(state);
         }
       }
     },

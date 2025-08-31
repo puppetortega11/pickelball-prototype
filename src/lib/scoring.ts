@@ -1,6 +1,6 @@
 import { RULES } from "./config";
-import type { State } from "./types";
 import { resetBallForServe } from "./physics";
+import type { State } from "./types";
 
 export function checkPoint(s: State): "p1" | "p2" | null {
   if (s.ball.pos.x < 0) return "p2";

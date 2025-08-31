@@ -19,7 +19,14 @@ export function stepBall(s: State, dt: number) {
   if (inNetY && nearNetX) b.vel.x *= -1;
 }
 
-export function collideWithPaddle(px: number, py: number, pw: number, ph: number, bPos: Vec, bR: number) {
+export function collideWithPaddle(
+  px: number,
+  py: number,
+  pw: number,
+  ph: number,
+  bPos: Vec,
+  bR: number
+) {
   const cx = clamp(bPos.x, px, px + pw);
   const cy = clamp(bPos.y, py, py + ph);
   const dx = bPos.x - cx;

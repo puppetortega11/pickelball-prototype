@@ -33,14 +33,24 @@ export default function PickleballGame() {
         w: COURT.PADDLE_W, 
         h: COURT.PADDLE_H, 
         maxSpeed: COURT.BASE_PADDLE_SPEED, 
-        human: true 
+        human: true,
+        name: "Player",
+        avatar: {
+          color: "#4A90E2",
+          flag: "🇺🇸"
+        }
       },
       p2: { 
         pos: { x: canvas.width - 40 - COURT.PADDLE_W, y: (canvas.height - COURT.PADDLE_H) / 2 }, 
         w: COURT.PADDLE_W, 
         h: COURT.PADDLE_H, 
         maxSpeed: COURT.BASE_PADDLE_SPEED, 
-        human: false 
+        human: false,
+        name: "AI Opponent",
+        avatar: {
+          color: "#E24A4A",
+          flag: "🤖"
+        }
       },
       score: { p1: 0, p2: 0 },
       serving: "p1",
@@ -83,8 +93,14 @@ export default function PickleballGame() {
   const draw = useCallback((canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D, state: State, bg: HTMLImageElement) => {
     if (bg.complete && bg.naturalWidth > 0) {
       ctx.drawImage(bg, 0, 0, state.w, state.h);
+      ctx.fillStyle = "rgba(139, 69, 19, 0.2)";
+      ctx.fillRect(0, 0, state.w, state.h);
     } else {
-      ctx.fillStyle = "#2a845e";
+      const gradient = ctx.createLinearGradient(0, 0, 0, state.h);
+      gradient.addColorStop(0, "#8B4513");
+      gradient.addColorStop(0.5, "#A0522D");
+      gradient.addColorStop(1, "#8B4513");
+      ctx.fillStyle = gradient;
       ctx.fillRect(0, 0, state.w, state.h);
     }
 
@@ -95,19 +111,80 @@ export default function PickleballGame() {
     ctx.fillStyle = "rgba(255,255,255,0.9)";
     ctx.fillRect(state.w / 2 - 1, state.h / 2 - state.netH / 2, 2, state.netH);
 
-    ctx.fillStyle = "rgba(0,0,0,.8)";
-    ctx.fillRect(state.p1.pos.x, state.p1.pos.y, state.p1.w, state.p1.h);
-    ctx.fillRect(state.p2.pos.x, state.p2.pos.y, state.p2.w, state.p2.h);
+    ctx.beginPath();
+    ctx.arc(state.p1.pos.x + state.p1.w/2, state.p1.pos.y + state.p1.h/2, 25, 0, Math.PI * 2);
+    ctx.fillStyle = state.p1.avatar.color;
+    ctx.fill();
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    
+    ctx.font = "16px system-ui";
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.fillText(state.p1.avatar.flag || "P1", state.p1.pos.x + state.p1.w/2, state.p1.pos.y + state.p1.h/2 + 5);
+    
+    ctx.beginPath();
+    ctx.arc(state.p2.pos.x + state.p2.w/2, state.p2.pos.y + state.p2.h/2, 25, 0, Math.PI * 2);
+    ctx.fillStyle = state.p2.avatar.color;
+    ctx.fill();
+    ctx.strokeStyle = "#ffffff";
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    
+    ctx.font = "16px system-ui";
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.fillText(state.p2.avatar.flag || "P2", state.p2.pos.x + state.p2.w/2, state.p2.pos.y + state.p2.h/2 + 5);
 
     ctx.beginPath();
+    ctx.arc(state.ball.pos.x + 2, state.ball.pos.y + 2, state.ball.r, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(0,0,0,0.3)";
+    ctx.fill();
+    
+    const ballGradient = ctx.createRadialGradient(state.ball.pos.x-3, state.ball.pos.y-3, 0, state.ball.pos.x, state.ball.pos.y, state.ball.r);
+    ballGradient.addColorStop(0, "#ffffff");
+    ballGradient.addColorStop(0.7, "#f0f0f0");
+    ballGradient.addColorStop(1, "#cccccc");
+    ctx.beginPath();
     ctx.arc(state.ball.pos.x, state.ball.pos.y, state.ball.r, 0, Math.PI * 2);
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = ballGradient;
+    ctx.fill();
+    
+    ctx.beginPath();
+    ctx.arc(state.ball.pos.x - 2, state.ball.pos.y - 2, state.ball.r * 0.3, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,255,255,0.8)";
     ctx.fill();
 
-    ctx.font = "24px system-ui, -apple-system, Segoe UI, Roboto";
+    ctx.textAlign = "center";
+    
+    ctx.fillStyle = "rgba(0,0,0,0.8)";
+    ctx.fillRect(state.w * 0.2, 10, 100, 60);
+    ctx.strokeStyle = state.p1.avatar.color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(state.w * 0.2, 10, 100, 60);
+    
+    ctx.font = "bold 32px system-ui, -apple-system, Segoe UI, Roboto";
     ctx.fillStyle = "#ffffff";
-    ctx.fillText(`${state.score.p1}`, state.w * 0.25, 36);
-    ctx.fillText(`${state.score.p2}`, state.w * 0.75, 36);
+    ctx.fillText(`${state.score.p1}`, state.w * 0.25, 50);
+    
+    ctx.font = "12px system-ui";
+    ctx.fillStyle = state.p1.avatar.color;
+    ctx.fillText(state.p1.name, state.w * 0.25, 25);
+    
+    ctx.fillStyle = "rgba(0,0,0,0.8)";
+    ctx.fillRect(state.w * 0.7, 10, 100, 60);
+    ctx.strokeStyle = state.p2.avatar.color;
+    ctx.lineWidth = 2;
+    ctx.strokeRect(state.w * 0.7, 10, 100, 60);
+    
+    ctx.font = "bold 32px system-ui, -apple-system, Segoe UI, Roboto";
+    ctx.fillStyle = "#ffffff";
+    ctx.fillText(`${state.score.p2}`, state.w * 0.75, 50);
+    
+    ctx.font = "12px system-ui";
+    ctx.fillStyle = state.p2.avatar.color;
+    ctx.fillText(state.p2.name, state.w * 0.75, 25);
     
     if (hasWinner(state)) {
       const winner = state.score.p1 > state.score.p2 ? "You win!" : "AI wins!";

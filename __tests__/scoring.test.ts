@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { awardPoint, checkPoint, hasWinner } from "../src/lib/scoring";
+import type { State } from "../src/lib/types";
 
 function makeState() {
   return {
@@ -12,7 +13,7 @@ function makeState() {
     rally: 0,
     paused: false,
     aiLevel: 3
-  } as any;
+  } as State;
 }
 
 describe("scoring", () => {

@@ -13,6 +13,11 @@ export type Paddle = {
   h: number;
   maxSpeed: number;
   human: boolean;
+  name: string;
+  avatar: {
+    color: string;
+    flag?: string; // Country flag or identifier
+  };
 };
 
 export type Score = { p1: number; p2: number };

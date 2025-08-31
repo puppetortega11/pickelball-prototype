@@ -1,0 +1,19 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Pickleball MVP</title>
+    <style>
+      html, body { height: 100%; margin: 0; background:#0b1220; }
+      #wrap { display:flex; align-items:center; justify-content:center; height:100%;}
+      canvas { width: 900px; height: 550px; image-rendering: crisp-edges; border-radius: 14px; box-shadow: 0 10px 30px rgba(0,0,0,.4);}
+      .hud { position:fixed; top:12px; left:50%; transform:translateX(-50%); font-family: ui-sans-serif, system-ui, -apple-system; color:#fff; background:rgba(0,0,0,.35); padding:8px 14px; border-radius:10px;}
+    </style>
+  </head>
+  <body>
+    <div class="hud">Move: W/S or ↑/↓ · Pause: Space</div>
+    <div id="wrap"><canvas id="game" width="900" height="550"></canvas></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

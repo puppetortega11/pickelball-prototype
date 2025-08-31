@@ -6,7 +6,6 @@ export function aiPaddleSpeed(level: number) {
   return COURT.BASE_PADDLE_SPEED * pct;
 }
 
-/** simple tracker with reaction delay & jitter */
 export function updateAI(s: State, dt: number) {
   const p2 = s.p2;
   p2.maxSpeed = aiPaddleSpeed(s.aiLevel);
@@ -23,7 +22,6 @@ export function updateAI(s: State, dt: number) {
   if (p2.pos.y > maxY) p2.pos.y = maxY;
 }
 
-/** adapt difficulty by scoreboard */
 export function adaptDifficulty(s: State) {
   const diff = s.score.p1 - s.score.p2; // if player leads, make AI stronger
   if (diff >= 3 && s.aiLevel < RULES.AI_MAX_LEVEL) s.aiLevel += 1;
